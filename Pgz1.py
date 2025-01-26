@@ -4,10 +4,12 @@ import pgzrun
 WIDTH = 800
 HEIGHT = 600
 
-player_png = Actor("goku")
-enemy_png = Actor("goku")
+player_png = Actor("warrior")
+enemy_png = Actor("bandit")
+upgrade_png = "upgrade"
+level1bg_png = "level1bg"
 
-
+upgrade_button_position = WIDTH * 0.54, HEIGHT * 0.93
 
 #DICTIONARIES
 game_states = {
@@ -140,23 +142,31 @@ def quit_game():
 def Initiate_Level():
     screen.clear()
     #screen.draw.text("Level 1", center=(WIDTH // 2, 25), fontsize=50, color="white")
-    draw_character(player_png,(WIDTH * 0.2, HEIGHT // 2), f"{cur_player_hp}/{max_player_hp}")
-    draw_character(enemy_png,(WIDTH * 0.8, HEIGHT // 2), f"{cur_enemy_hp}/{max_enemy_hp}")
+    screen.blit(level1bg_png, (-250, 0))
+    draw_character(player_png,(WIDTH * 0.2, HEIGHT * 0.8), f"{cur_player_hp}/{max_player_hp}")
+    draw_character(enemy_png,(WIDTH * 0.8, HEIGHT * 0.8), f"{cur_enemy_hp}/{max_enemy_hp}")
     draw_level_texts(turn,gold,level,player_str,cur_stat_increase_cost)
 
 def draw_character(character, location, subtitle):
     character.pos = location
     character.draw()
     character_subtitle = subtitle
-    screen.draw.text(character_subtitle, center = location,  fontsize = 24, color = "red")
+    locationx, locationy = location
+    screen.draw.text(character_subtitle, center = (locationx,locationy-50), fontsize = 36, color = "red")
     
     
 def draw_level_texts(turn,gold,level,player_str,cur_stat_increase_cost):
-    screen.draw.text(str(turn), center = (WIDTH // 20, HEIGHT // 20), fontsize = 24, color = "white")
-    screen.draw.text(str(gold), center = (WIDTH *0.95, HEIGHT // 20), fontsize = 24, color = "gold")
-    screen.draw.text(str(level), center = (WIDTH // 2, HEIGHT // 20), fontsize = 36, color = "white")
-    screen.draw.text(str(player_str), center = (WIDTH * 0.8, HEIGHT // 20), fontsize = 24, color = "white")
-    screen.draw.text(str(cur_stat_increase_cost), center = (WIDTH *0.85, HEIGHT // 20), fontsize = 24, color = "white")
+    turn_text = f"Turn: {str(turn)}"
+    gold_text = f"Gold: {str(gold)}"
+    level_text = f"Level: {str(level)}"
+    player_str_text = f"STR: {str(player_str)}"
+    cur_stat_increase_cost_text = f"Cost: {str(cur_stat_increase_cost)}"
+    screen.draw.text(turn_text, center = (WIDTH // 20, HEIGHT // 20), fontsize = 24, color = "white")
+    screen.draw.text(gold_text, center = (WIDTH *0.95, HEIGHT // 20), fontsize = 32, color = "gold")
+    screen.draw.text(level_text, center = (WIDTH // 2, HEIGHT // 20), fontsize = 36, color = "white")
+    screen.draw.text(player_str_text, center = (WIDTH * 0.5, HEIGHT * 0.93), fontsize = 24, color = "white")
+    screen.draw.text(cur_stat_increase_cost_text, center = (WIDTH *0.5, HEIGHT * 0.96), fontsize = 24, color = "white")
+    screen.blit(upgrade_png, (upgrade_button_position))
     pass
     
 
@@ -183,8 +193,4 @@ def load_data():
     except:
         print("something went wrong")
     
-
-
-
-
 pgzrun.go()
