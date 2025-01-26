@@ -4,6 +4,7 @@ import pgzrun
 WIDTH = 800
 HEIGHT = 600
 
+player_png = Actor("goku")
 
 
 
@@ -32,9 +33,11 @@ sounds_on = True
 turn = 0
 level = 1
 
-# PLAYER VALUES
-# gold = 0
 
+# gold = 0
+# base_stat_increase_cost
+# cur_stat_increase_cost
+# cost_multiplier
 
 def draw():
     draw_function_name = f"draw_{current_screen}"
@@ -49,15 +52,17 @@ def draw_subtitle(comment):
 def draw_menu():
     screen.clear()
     screen.draw.text("Main Menu", center=(WIDTH // 2, 100), fontsize=60, color="white")
-    draw_comment("testing the menu")
+    draw_subtitle("testing the menu")
     for i, option in enumerate(menu_options):
         color = "yellow" if i == selected_option else "white"
-        screen.draw.text(option["label"], center=(WIDTH // 2, 200 + i * 50), fontsize=40, color=color)
+        screen.draw.text(option["label"], center=(WIDTH // 2, HEIGHT/2.5 + i * 50), fontsize=40, color=color)
 
 
-def draw_level():
+def draw_level1():
     screen.clear()
-    screen.draw.text("Level 1", center=(WIDTH // 2, HEIGHT // 2), fontsize=50, color="white")
+    screen.draw.text("Level 1", center=(WIDTH // 2, 25), fontsize=50, color="white")
+    player_png.pos = (WIDTH // 5, HEIGHT // 2)
+    player_png.draw()
 
 
 def draw_settings():
