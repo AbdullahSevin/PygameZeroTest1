@@ -1,111 +1,116 @@
-import random
+import pgzrun
 
-WIDTH, HEIGHT = 640, 640
-
-class Player:
-    def __init__(self, x, y, size, color, speed):
-        self.x = x
-        self.y = y
-        self.size = size
-        self.color = color
-        self.speed = speed
-
-    def draw(self):
-        screen.draw.filled_rect(Rect((self.x, self.y), (self.size, self.size)), self.color)
-
-    def move(self, dx, dy):
-        # diagonal move speed fix
-        if dx != 0 and dy != 0:
-            dx *= 0.7071
-            dy *= 0.7071
-
-        
-        self.x += dx * self.speed
-        self.y += dy * self.speed
-        self.x = max(0, min(WIDTH - self.size, self.x))
-        self.y = max(0, min(HEIGHT - self.size, self.y))
+#CONSTANTS
+WIDTH = 800
+HEIGHT = 600
 
 
-obstacle_spawn_point_x_randomizer = random.randint(0,WIDTH)
 
-class Obstacle1:
-    def __init__(self, x, y, size, color, speed):
-        self.x = x
-        self.y = y
-        self.size = size
-        self.color = color
-        self.speed = speed
-        #add:
-        #self.damage
-        #self.hp?
 
-    def draw(self):
-        screen.draw.filled_rect(Rect((self.x, self.y), (self.size, self.size)), self.color)
-        
-    def move(self):
-        self.y += self.speed
-        # Respawn it when it goes below screen
-        if self.y > HEIGHT:
-            self.respawn()
+#DICTIONARIES
+game_states = {
+    "menu": "menu",
+    "level1": "level1",
+    "settings": "settings"
+}
 
-    def respawn(self):
-        self.x = random.randint(0, WIDTH - self.size)
-        self.y = -self.size
-        self.speed = random.uniform(1, 5)
 
-obstacle1 = Obstacle1(
-    x=random.randint(0, WIDTH - 50),
-    y=-50,
-    size=50,
-    color=(255, 0, 0),
-    speed=random.uniform(3, 5),
-)
-obstacle2 = Obstacle1(
-    x=random.randint(0, WIDTH - 50),
-    y=-50,
-    size=50,
-    color=(255, 0, 0),
-    speed=random.uniform(3, 5),
-)
-obstacle3 = Obstacle1(
-    x=random.randint(0, WIDTH - 50),
-    y=-50,
-    size=50,
-    color=(255, 0, 0),
-    speed=random.uniform(3, 5),
-)
 
-        
-player = Player(WIDTH // 2, HEIGHT // 2, size=50, color=(0, 255, 0), speed=5) 
+#LISTS
+menu_options = [
+    {"label": "Play", "action": "switch_to_level1"},
+    {"label": "Settings", "action": "switch_to_settings"},
+    {"label": "Quit", "action": "quit_game"}
+]
 
-BACKGROUND_COLOR = (0, 0, 255) #BLUE
+
+
+# CHANGABLE GLOBALS
+selected_option = 0
+current_screen = game_states["menu"]
+sounds_on = True
+turn = 0
+level = 1
+
+# PLAYER VALUES
+# gold = 0
 
 
 def draw():
-    screen.fill(BACKGROUND_COLOR)
-    player.draw()
-    obstacle1.draw()
-    obstacle2.draw()
-    obstacle3.draw()
+    draw_function_name = f"draw_{current_screen}"
+    draw_function = globals().get(draw_function_name, None)
+    if callable(draw_function):
+        draw_function()
+
+
+def draw_subtitle(comment):
+    screen.draw.text(comment, center =  (WIDTH // 2, HEIGHT * 0.9), fontsize = 16, color = "gold")
+
+def draw_menu():
+    screen.clear()
+    screen.draw.text("Main Menu", center=(WIDTH // 2, 100), fontsize=60, color="white")
+    draw_comment("testing the menu")
+    for i, option in enumerate(menu_options):
+        color = "yellow" if i == selected_option else "white"
+        screen.draw.text(option["label"], center=(WIDTH // 2, 200 + i * 50), fontsize=40, color=color)
+
+
+def draw_level():
+    screen.clear()
+    screen.draw.text("Level 1", center=(WIDTH // 2, HEIGHT // 2), fontsize=50, color="white")
+
+
+def draw_settings():
+    screen.clear()
+    screen.draw.text("Settings", center=(WIDTH // 2, HEIGHT // 2), fontsize=50, color="white")
 
 
 def update():
-    # put this in a def
-    dx, dy = 0, 0
-    if keyboard.left:
-        dx -= 1
-    if keyboard.right:
-        dx += 1
-    if keyboard.up:
-        dy -= 1
-    if keyboard.down:
-        dy += 1
+    pass
 
-    player.move(dx, dy)
-    obstacle1.move()
-    obstacle2.move()
-    obstacle3.move()
 
-# add collisions
-# add shooting
-# add levels
+def on_key_down(key):
+    key_function_name = f"handle_key_{current_screen}"
+    key_function = globals().get(key_function_name, None)
+    if callable(key_function):
+        key_function(key)
+
+
+def handle_key_menu(key):
+    global selected_option
+
+    if key == keys.UP:
+        navigate_menu(-1)
+    elif key == keys.DOWN:
+        navigate_menu(1)
+    elif key == keys.RETURN:
+        execute_menu_action()
+
+
+def navigate_menu(direction):
+    global selected_option
+    selected_option = (selected_option + direction) % len(menu_options)
+
+
+def execute_menu_action():
+    action_function_name = menu_options[selected_option]["action"]
+    action_function = globals().get(action_function_name, None)
+    if callable(action_function):
+        action_function()
+
+
+def switch_to_level1():
+    global current_screen
+    current_screen = game_states["level1"]
+
+
+def switch_to_settings():
+    global current_screen
+    current_screen = game_states["settings"]
+
+
+def quit_game():
+    quit()
+
+
+pgzrun.go()
