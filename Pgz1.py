@@ -4,11 +4,16 @@ import math
 #CONSTANTS
 WIDTH = 800
 HEIGHT = 600
-
+#images
 player_png = Actor("player")
 enemy1_png = Actor("bandit")
 upgrade_png = Actor("upgrade")
 level1bg_png = "level1bg"
+#sounds
+#...
+
+
+
 
 upgrade_button_position = WIDTH * 0.56, HEIGHT * 0.94
 
@@ -58,9 +63,127 @@ max_enemy_hp = 10
 player = None
 enemy_1 = None
 
-player_speed = 3
+player_speed = 5
 enemy_speed = 3
 
+level_is_initiated = False
+
+player_position_x, player_position_y = WIDTH * 0.2, HEIGHT * 0.8
+
+enemy1_position_x, enemy1_position_y = WIDTH * 0.8, HEIGHT * 0.8
+
+player_animations = {
+"idle" : ["player_idle1","player_idle2","player_idle3"],
+"walk" : ["player_walk1","player_walk2", "player_walk3"],
+"attack" : ["player_attack1","player_attack2","player_attack3"]
+}
+
+player_is_moving = False
+player_is_in_action  = False
+player_is_attacking = False
+
+current_frame = 0
+animation_speed = 5
+animation_timer = 0
+
+class Animator():
+    def animate_player_movement():
+        global player_png
+        global current_frame
+        global animation_timer
+        
+        if not player_is_in_action:
+        
+            if player_is_moving == False:
+                animation_state = "idle"
+            else:
+                animation_state = "walk"
+                
+            animation_frames = player_animations[animation_state]
+            
+            
+            if current_frame < len(animation_frames)-1:
+                animation_timer +=1
+                if animation_timer >= animation_speed:
+                    current_frame += 1
+                    animation_timer  = 0
+            else:
+                animation_timer += 1
+                if animation_timer >= animation_speed:
+                    current_frame = 0
+                    animation_timer = 0
+            
+            player_png.image = animation_frames[current_frame]
+        
+    def animate_player_attack():
+        global player_is_in_action
+        global current_frame
+        global animation_timer
+        global player_is_attacking
+        
+        if player_is_attacking == False:
+            return
+        
+        
+        player_is_in_action = True
+        
+        animation_state = "attack"
+        
+        animation_frames = player_animations[animation_state]
+            
+        if current_frame < len(animation_frames)-1:
+            animation_timer +=1
+            print(animation_timer)
+            if animation_timer >= animation_speed:
+                current_frame += 1
+                animation_timer  = 0
+        else:
+            animation_timer +=1
+            if animation_timer >= animation_speed:
+                player_is_attacking = False  # Reset attack state
+                player_is_in_action = False  # Action is completed
+                Animator.reset_animator_variables()
+        
+        player_png.image = animation_frames[current_frame]
+        
+    def animate_player_damaged():
+        pass
+        
+    def animate_player_death():
+        pass
+        
+    def animate_enemy_damaged():
+        pass
+        
+    def animate_enemy_death():
+        pass
+    
+    def animate_next_level():
+        pass
+        
+    def animate_restart_from_level1():
+        pass
+        
+    def reset_animator_variables():
+        global current_frame, animation_speed, animation_timer
+        
+        current_frame = 0
+        animation_speed = 10
+        animation_timer = 0
+        
+        
+            
+        
+class SoundManager():
+    
+    def play_clip(clip):
+        # take a string as parameter
+        # or make a dictionary its better
+        # play sound if sounds_on
+        pass
+            
+                
+            
 
 def draw():
     draw_function_name = f"draw_{current_screen}"
@@ -99,7 +222,8 @@ def draw_level1():
 
 def draw_settings():
     screen.clear()
-    screen.draw.text("Settings", center=(WIDTH // 2, HEIGHT // 2), fontsize=50, color="white")
+    current_sound_text = "On" if sounds_on else "Off"
+    screen.draw.text(f"Sounds are turned: {current_sound_text}", center=(WIDTH // 2, HEIGHT // 2), fontsize=50, color="white")
 
 
 def update():
@@ -107,27 +231,35 @@ def update():
     if turn == 1:
         player.take_damage(enemy_str)
         turn = 0
-    pass
     
     Handle_Player_Movement()
+    Animator.animate_player_movement()
+    Animator.animate_player_attack()
     
 
 
 def Handle_Player_Movement():
-
-    
+    global player_png, player_speed, player_position_x,player_position_y, player_is_moving
     if keyboard.right:
-        if player_png.x  < WIDTH // 2:
-            player_png.x += player_speed
+        if player_position_x <= ((WIDTH // 2)-48) :
+            player_position_x += player_speed
+            player_is_moving = True
     if keyboard.left:
-        if player_png.x  > WIDTH:
-            player_png.x -= player_speed
+        if player_position_x > 48:
+            player_position_x -= player_speed
+            player_is_moving = True
     if keyboard.up:
-        if player_png.y  < HEIGHT:
-            player_png.y += player_speed
+        if player_position_y > 64:
+            player_position_y -= player_speed
+            player_is_moving = True
     if keyboard.down:
-        if player_png.y  > HEIGHT:
-            player_png.y -= player_speed
+        if player_position_y < HEIGHT -48:
+            player_position_y += player_speed
+            player_is_moving = True
+            
+    if not (keyboard.right or keyboard.left or keyboard.up or keyboard.down):
+        player_is_moving = False
+
     
 
 def on_key_down(key):
@@ -177,11 +309,16 @@ def quit_game():
 def Initiate_Level():
     global player
     global enemy1
-    screen.clear()
+    global level_is_initiated
+    
     #screen.draw.text("Level 1", center=(WIDTH // 2, 25), fontsize=50, color="white")
+    
+    
+    screen.clear()
     screen.blit(level1bg_png, (-250, 0))
-    draw_character(player_png,(WIDTH * 0.2, HEIGHT * 0.8), f"{cur_player_hp}/{max_player_hp}")
-    draw_character(enemy1_png,(WIDTH * 0.8, HEIGHT * 0.8), f"{cur_enemy_hp}/{max_enemy_hp}")
+    draw_character(player_png,(player_position_x, player_position_y), f"{cur_player_hp}/{max_player_hp}")
+    draw_character(enemy1_png,(enemy1_position_x, enemy1_position_y), f"{cur_enemy_hp}/{max_enemy_hp}")
+        
     draw_level_texts(turn,gold,level,player_str,cur_stat_increase_cost)
     
     player = Player(cur_player_hp,player_str)
@@ -295,8 +432,13 @@ def change_player_str(amount):
     player_str += amount
     
 def on_mouse_down(pos):
+    global sounds_on, player_is_attacking
+    if current_screen == game_states["settings"]:
+        sounds_on = False if sounds_on else True
     if turn == 0:
         if enemy1_png.collidepoint(pos):
+            Animator.reset_animator_variables()
+            player_is_attacking = True
             enemy1.take_damage(player_str)
         else:
             pass
