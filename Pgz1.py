@@ -10,6 +10,7 @@ enemy1_png = Actor("bandit")
 upgrade_png = Actor("upgrade")
 level1bg_png = "level1bg"
 #sounds
+
 #...
 
 
@@ -83,8 +84,12 @@ player_is_in_action  = False
 player_is_attacking = False
 
 current_frame = 0
-animation_speed = 5
+animation_speed = 20
 animation_timer = 0
+
+damage_text = None
+damage_text_frame = 0
+
 
 class Animator():
     def animate_player_movement():
@@ -131,7 +136,7 @@ class Animator():
         
         animation_frames = player_animations[animation_state]
             
-        if current_frame < len(animation_frames)-1:
+        if current_frame < (len(animation_frames)/2)-1:
             animation_timer +=1
             print(animation_timer)
             if animation_timer >= animation_speed:
@@ -143,6 +148,7 @@ class Animator():
                 player_is_attacking = False  # Reset attack state
                 player_is_in_action = False  # Action is completed
                 Animator.reset_animator_variables()
+                enemy1.take_damage(player_str)
         
         player_png.image = animation_frames[current_frame]
         
@@ -153,6 +159,15 @@ class Animator():
         pass
         
     def animate_enemy_damaged():
+        enemy1_png.image = "bandit_damaged"
+        clock.schedule_unique(Animator.animate_enemy_idle, 0.25)
+        pass
+        
+    def animate_enemy_idle():
+        enemy1_png.image = "bandit"
+        pass
+        
+    def animate_enemy_attack():
         pass
         
     def animate_enemy_death():
@@ -164,11 +179,29 @@ class Animator():
     def animate_restart_from_level1():
         pass
         
+    def draw_floating_damage_text():
+        global damage_text, damage_text_frame
+        damage_text_frame +=1
+        damage_text = str(-player_str)
+        damage_text_pos_x, damage_text_pos_y  = enemy1_position_x, enemy1_position_y-75
+        damage_text_pos_y -= damage_text_frame
+        screen.draw.text(damage_text, center =  (damage_text_pos_x, damage_text_pos_y), fontsize = 32, color = "red")
+        clock.schedule_unique(Animator.reset_damage_frame, 0.25)
+            
+            
+    def reset_damage_frame():
+        global damage_text_frame
+        damage_text_frame = 0
+        
+    def animate_floating_damage_text():
+        global damage_text
+        
+        
     def reset_animator_variables():
         global current_frame, animation_speed, animation_timer
         
         current_frame = 0
-        animation_speed = 10
+        animation_speed = 20
         animation_timer = 0
         
         
@@ -180,10 +213,11 @@ class SoundManager():
         # take a string as parameter
         # or make a dictionary its better
         # play sound if sounds_on
-        pass
-            
-                
-            
+        if sounds_on:
+            sound = getattr(sounds, clip, None)
+            if sound:
+                sound.play()
+       
 
 def draw():
     draw_function_name = f"draw_{current_screen}"
@@ -321,6 +355,9 @@ def Initiate_Level():
         
     draw_level_texts(turn,gold,level,player_str,cur_stat_increase_cost)
     
+    draw_other_texts()
+    
+    
     player = Player(cur_player_hp,player_str)
     enemy1 = Enemy(cur_enemy_hp,enemy_str)
 
@@ -347,6 +384,10 @@ def draw_level_texts(turn,gold,level,player_str,cur_stat_increase_cost):
     upgrade_png.draw()
     pass
     
+    
+def draw_other_texts():
+    if player_is_attacking:
+        Animator.draw_floating_damage_text()
 
 def request_to_save_data():
     save_data(turn, level, gold, player_str)
@@ -406,6 +447,7 @@ class Enemy:
         global cur_enemy_hp
         global turn
         global gold
+        Animator.animate_enemy_damaged()
         cur_enemy_hp -= damage
         gold += damage
         if cur_enemy_hp <= 0:
@@ -431,22 +473,30 @@ def change_player_str(amount):
     global player_str
     player_str += amount
     
+def start_player_attack(pos):
+    global player_is_attacking
+    if enemy1_png.collidepoint(pos):
+            if player_is_attacking == False:
+                Animator.reset_animator_variables()
+                player_is_attacking = True
+                SoundManager.play_clip("yaa")
+            
+    else:
+        pass
+
+
 def on_mouse_down(pos):
-    global sounds_on, player_is_attacking
+    global sounds_on
     if current_screen == game_states["settings"]:
         sounds_on = False if sounds_on else True
     if turn == 0:
-        if enemy1_png.collidepoint(pos):
-            Animator.reset_animator_variables()
-            player_is_attacking = True
-            enemy1.take_damage(player_str)
-        else:
-            pass
-            
+        start_player_attack(pos)
+        
         if upgrade_png.collidepoint(pos):
             if gold >= cur_stat_increase_cost:
                 change_gold(-cur_stat_increase_cost)
                 change_player_str(1)
             pass
+        
     
 pgzrun.go()
