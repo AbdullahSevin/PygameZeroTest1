@@ -111,6 +111,8 @@ current_background_music = "the_wellerman"
 music_started = False
 
 def start_bg_music(name):
+    if sounds_on == False:
+        return
     global music_started
     if music_started == True:
         return
@@ -130,6 +132,8 @@ def stop_bg_music():
 
 
 def play_bg_music(name = current_background_music):
+    if sounds_on == False:
+        return
     global current_background_music, background_is_playing
     if background_is_playing == True:
         return
@@ -404,11 +408,22 @@ def Handle_Player_Movement():
     
 
 def on_key_down(key):
+    global current_screen
     key_function_name = f"handle_key_{current_screen}"
     key_function = globals().get(key_function_name, None)
     if callable(key_function):
         key_function(key)
-
+        
+    if current_screen == game_states["settings"]:
+        if key == keys.ESCAPE:
+            draw_menu()
+            current_screen = game_states["menu"]
+            
+    if current_screen == game_states["level1"]:
+        if key == keys.ESCAPE:
+            draw_menu()
+            current_screen = game_states["menu"]
+        
 
 def handle_key_menu(key):
     global selected_option
@@ -603,6 +618,10 @@ def on_mouse_down(pos):
     global sounds_on
     if current_screen == game_states["settings"]:
         sounds_on = False if sounds_on else True
+        if sounds_on == False:
+            stop_bg_music()
+        elif sounds_on:
+            play_bg_music()
     if turn == 0:
         start_player_attack(pos)
         
