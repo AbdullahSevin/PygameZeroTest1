@@ -48,7 +48,7 @@ level = 1
 gold = 0
 base_stat_increase_cost = 10
 cur_stat_increase_cost = 10
-cost_multiplier = 1.1
+cost_multiplier = 1.25
 
 player_str = 5 #strength
 player_str_level = 1
@@ -79,17 +79,68 @@ player_animations = {
 "attack" : ["player_attack1","player_attack2","player_attack3"]
 }
 
+enemy_animations = {
+"attack" : ["bandit_attack1","bandit_attack2","bandit_attack3"]
+}
+
+
 player_is_moving = False
 player_is_in_action  = False
 player_is_attacking = False
+player_is_getting_damaged = False
+
+enemy_is_moving = False
+enemy_is_attacking = False
+enemy_is_getting_damaged = False
 
 current_frame = 0
 animation_speed = 20
 animation_timer = 0
 
+enemy_current_frame = 0
+enemy_animation_speed = 20
+enemy_animation_timer = 0
+
 damage_text = None
 damage_text_frame = 0
 
+background_is_playing = False
+
+current_background_music = "the_wellerman"
+
+music_started = False
+
+def start_bg_music(name):
+    global music_started
+    if music_started == True:
+        return
+    print("runned once only")
+    stop_bg_music()
+    play_bg_music(name)
+    music_started = True
+    
+    
+def stop_bg_music():
+    global background_is_playing
+    if background_is_playing == False:
+        return
+    elif background_is_playing:
+        music.stop()
+        background_is_playing = False
+
+
+def play_bg_music(name = current_background_music):
+    global current_background_music, background_is_playing
+    if background_is_playing == True:
+        return
+    elif background_is_playing == False:
+        music.set_volume(0.3)
+        music.play(name)
+        print(f"playing {name}")
+        current_background_music = name
+        background_is_playing = True
+
+play_bg_music()
 
 class Animator():
     def animate_player_movement():
@@ -97,8 +148,7 @@ class Animator():
         global current_frame
         global animation_timer
         
-        if not player_is_in_action:
-        
+        if player_is_in_action == False:
             if player_is_moving == False:
                 animation_state = "idle"
             else:
@@ -136,38 +186,91 @@ class Animator():
         
         animation_frames = player_animations[animation_state]
             
-        if current_frame < (len(animation_frames)/2)-1:
+        if current_frame < len(animation_frames)-1:
             animation_timer +=1
-            print(animation_timer)
-            if animation_timer >= animation_speed:
+            #print(animation_timer)
+            if animation_timer >= (animation_speed * (2-(current_frame*1.35))):
                 current_frame += 1
                 animation_timer  = 0
         else:
             animation_timer +=1
-            if animation_timer >= animation_speed:
-                player_is_attacking = False  # Reset attack state
-                player_is_in_action = False  # Action is completed
+            if animation_timer >= animation_speed / 3:
+                player_is_attacking = False
+                player_is_in_action = False
                 Animator.reset_animator_variables()
                 enemy1.take_damage(player_str)
         
         player_png.image = animation_frames[current_frame]
         
-    def animate_player_damaged():
-        pass
+
         
     def animate_player_death():
         pass
         
     def animate_enemy_damaged():
+        global enemy_is_getting_damaged
+        enemy_is_getting_damaged = True
         enemy1_png.image = "bandit_damaged"
-        clock.schedule_unique(Animator.animate_enemy_idle, 0.25)
+        Animator.animate_floating_damage_text()
+        clock.schedule_unique(Animator.animate_enemy_idle_and_attack, 0.25)
         pass
         
+    def animate_enemy_idle_and_attack():
+        global enemy_is_getting_damaged
+        enemy_is_getting_damaged = False
+        
+        enemy1_png.image = "bandit"
+        
+        clock.schedule_unique(Animator.set_enemy_attack_true, 0.15)
+        
+    def set_enemy_attack_true():
+        global enemy_is_attacking
+        enemy_is_attacking =  True
+        if turn == 1:
+            SoundManager.play_clip("magic_fireball", 0.30)
+            SoundManager.play_clip("bat_attack1", 0.05)
+        
     def animate_enemy_idle():
+        global enemy_is_getting_damaged
+        enemy_is_getting_damaged = False
         enemy1_png.image = "bandit"
         pass
         
     def animate_enemy_attack():
+        global enemy_is_attacking
+        global enemy_current_frame
+        global enemy_animation_timer
+        global turn
+        
+        if enemy_is_attacking == False:
+            return
+        
+        #print ("enemy_attack_entered")
+        animation_state = "attack"
+        
+        animation_frames = enemy_animations[animation_state]
+            
+        if enemy_current_frame < len(animation_frames)-1:
+            enemy_animation_timer +=1
+            #print(f"eemy atack if state entered anm timer : {enemy_animation_timer}")
+            #print(f"current_frame: {current_frame}")
+            if enemy_animation_timer >= enemy_animation_speed:
+                enemy_current_frame += 1
+                #print(f"cur frame =  {enemy_current_frame}")
+                animation_timer  = 0
+        else:
+            #print("enemy  atafk els eeneterred")
+            enemy_animation_timer +=1
+            if enemy_animation_timer >= enemy_animation_speed *  2:
+                enemy_is_attacking = False
+                Animator.reset_enemy_animator_variables()
+                player.take_damage(enemy_str)
+                turn = 0
+                clock.schedule_unique(Animator.animate_enemy_idle, 0.2)
+        
+        enemy1_png.image = animation_frames[enemy_current_frame]
+        
+        
         pass
         
     def animate_enemy_death():
@@ -204,18 +307,26 @@ class Animator():
         animation_speed = 20
         animation_timer = 0
         
+    def reset_enemy_animator_variables():
+        global enemy_current_frame, enemy_animation_speed, enemy_animation_timer
+        
+        enemy_current_frame = 0
+        enemy_animation_speed = 20
+        enemy_animation_timer = 0
+        
         
             
         
 class SoundManager():
     
-    def play_clip(clip):
+    def play_clip(clip, volume = 1):
         # take a string as parameter
         # or make a dictionary its better
         # play sound if sounds_on
         if sounds_on:
             sound = getattr(sounds, clip, None)
             if sound:
+                sound.set_volume(volume)
                 sound.play()
        
 
@@ -262,15 +373,11 @@ def draw_settings():
 
 def update():
     global turn
-    if turn == 1:
-        player.take_damage(enemy_str)
-        turn = 0
-    
     Handle_Player_Movement()
     Animator.animate_player_movement()
     Animator.animate_player_attack()
-    
-
+    if turn == 1 and enemy_is_attacking and not enemy_is_getting_damaged:
+        Animator.animate_enemy_attack()
 
 def Handle_Player_Movement():
     global player_png, player_speed, player_position_x,player_position_y, player_is_moving
@@ -346,8 +453,7 @@ def Initiate_Level():
     global level_is_initiated
     
     #screen.draw.text("Level 1", center=(WIDTH // 2, 25), fontsize=50, color="white")
-    
-    
+    start_bg_music("goku_black")
     screen.clear()
     screen.blit(level1bg_png, (-250, 0))
     draw_character(player_png,(player_position_x, player_position_y), f"{cur_player_hp}/{max_player_hp}")
@@ -386,9 +492,12 @@ def draw_level_texts(turn,gold,level,player_str,cur_stat_increase_cost):
     
     
 def draw_other_texts():
-    if player_is_attacking:
+    if enemy_is_getting_damaged:
         Animator.draw_floating_damage_text()
-
+    pass
+    
+    
+    
 def request_to_save_data():
     save_data(turn, level, gold, player_str)
 
@@ -447,7 +556,9 @@ class Enemy:
         global cur_enemy_hp
         global turn
         global gold
+        global enemy_is_attacking
         Animator.animate_enemy_damaged()
+        SoundManager.play_clip("damaged4")
         cur_enemy_hp -= damage
         gold += damage
         if cur_enemy_hp <= 0:
@@ -484,6 +595,9 @@ def start_player_attack(pos):
     else:
         pass
 
+def change_upgrade_cost():
+    global cur_stat_increase_cost
+    cur_stat_increase_cost = math.ceil(cur_stat_increase_cost * cost_multiplier)
 
 def on_mouse_down(pos):
     global sounds_on
@@ -495,7 +609,8 @@ def on_mouse_down(pos):
         if upgrade_png.collidepoint(pos):
             if gold >= cur_stat_increase_cost:
                 change_gold(-cur_stat_increase_cost)
-                change_player_str(1)
+                change_player_str(3)
+                change_upgrade_cost()
             pass
         
     
